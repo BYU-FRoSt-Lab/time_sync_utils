@@ -17,11 +17,13 @@ class NmeaToGpsd(Node):
         self.declare_parameter('gpsd_port', 3001)         # UDP port gpsd listens on
         self.declare_parameter('nmea_topic', '/nmea')
         self.declare_parameter('utc_topic', '/sbg/utc_time')
+        self.declare_parameter('throttle_count', 10)  # number of messages to skip before publishing
 
         self.gpsd_host = self.get_parameter('gpsd_host').value
         self.gpsd_port = int(self.get_parameter('gpsd_port').value)
         self.nmea_topic = self.get_parameter('nmea_topic').value
         self.utc_topic = self.get_parameter('utc_topic').value
+        self.throttle_count = self.get_parameter('throttle_count').value
 
         # UDP socket (no connect/accept; connectionless)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -32,6 +34,9 @@ class NmeaToGpsd(Node):
         self.last_lon = '0.0'
         self.last_lon_dir = 'E'
         self.last_fix_status = 'V'
+
+        # Counter for throttling
+        self._utc_msg_counter = 0
 
         # Subscribe to NMEA sentences
         self.sub_nmea = self.create_subscription(
@@ -93,9 +98,12 @@ class NmeaToGpsd(Node):
         self.send_sentence(sentence)
 
     def utc_callback(self, msg: SbgUtcTime):
-        # Publish GPRMC using latest lat/lon from GGA
-        gprmc_sentence = self.gprmc_from_utc(msg)
-        self.send_sentence(gprmc_sentence)
+        # Increment message counter and throttle using count
+        self._utc_msg_counter += 1
+        if self._utc_msg_counter >= self.throttle_count:
+            gprmc_sentence = self.gprmc_from_utc(msg)
+            self.send_sentence(gprmc_sentence)
+            self._utc_msg_counter = 0
 
     def send_sentence(self, sentence):
         if not sentence.startswith('$'):
