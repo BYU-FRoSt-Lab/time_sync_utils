@@ -26,6 +26,13 @@ class NmeaToGpsd(Node):
         # UDP socket (no connect/accept; connectionless)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+        # Last known lat/lon from GGA
+        self.last_lat = '0.0'
+        self.last_lat_dir = 'N'
+        self.last_lon = '0.0'
+        self.last_lon_dir = 'E'
+        self.last_fix_status = 'V'
+
         # Subscribe to NMEA sentences
         self.sub_nmea = self.create_subscription(
             Sentence,
@@ -47,9 +54,9 @@ class NmeaToGpsd(Node):
             f'and publishing GPRMC from [{self.utc_topic}] to gpsd at {self.gpsd_host}:{self.gpsd_port}'
         )
 
-    def gprmc_from_utc(self, utc_msg, lat='0.0', lat_dir='N', lon='0.0', lon_dir='E', status='A'):
+    def gprmc_from_utc(self, utc_msg):
         """
-        Generate GPRMC sentence using SbgUtcTime message.
+        Generate GPRMC sentence using SbgUtcTime message and last known GGA lat/lon.
         """
         t = datetime(utc_msg.year, utc_msg.month, utc_msg.day,
                      utc_msg.hour, utc_msg.min, utc_msg.sec,
@@ -57,7 +64,7 @@ class NmeaToGpsd(Node):
         utc_time_str = t.strftime('%H%M%S.%f')[:9]  # hhmmss.ss
         utc_date_str = t.strftime('%d%m%y')         # DDMMYY
 
-        gprmc_core = f"GPRMC,{utc_time_str},,,,,,,,{utc_date_str},,,A"
+        gprmc_core = f"GPRMC,{utc_time_str},{self.last_fix_status},{self.last_lat},{self.last_lat_dir},{self.last_lon},{self.last_lon_dir},0.0,0.0,{utc_date_str},,,A"
 
         # Compute checksum
         checksum = 0
@@ -71,11 +78,22 @@ class NmeaToGpsd(Node):
     def nmea_callback(self, msg: Sentence):
         sentence = msg.sentence.strip()
 
-        # Forward original GGA
+        # Parse GGA for lat/lon and fix
+        if sentence.startswith('$GPGGA') or sentence.startswith('$GNGGA'):
+            fields = sentence.split(',')
+            if len(fields) > 6:
+                self.last_lat = fields[2]
+                self.last_lat_dir = fields[3]
+                self.last_lon = fields[4]
+                self.last_lon_dir = fields[5]
+                fix_quality = int(fields[6]) if fields[6].isdigit() else 0
+                self.last_fix_status = 'A' if fix_quality > 0 else 'V'
+
+        # Forward original NMEA sentence
         self.send_sentence(sentence)
 
     def utc_callback(self, msg: SbgUtcTime):
-        # Publish GPRMC using latitude/longitude from last known GGA or defaults
+        # Publish GPRMC using latest lat/lon from GGA
         gprmc_sentence = self.gprmc_from_utc(msg)
         self.send_sentence(gprmc_sentence)
 
