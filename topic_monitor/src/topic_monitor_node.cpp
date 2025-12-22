@@ -65,8 +65,10 @@ class TopicMonitor : public rclcpp::Node
     {
         RCLCPP_INFO(this->get_logger(), "In topic_monitor constructor");
 
-        this->declare_parameter<std::string>("topics_file", "topics.yaml");
+        this->declare_parameter<std::string>("topics_file", "config/topics.yaml");
         topics_file_ = this->get_parameter("topics_file").as_string();
+        this->declare_parameter<bool>("relative_path", true);
+        relative_path_ = this->get_parameter("relative_path").as_bool();
 
         load_topics_from_file();
 
@@ -97,26 +99,35 @@ class TopicMonitor : public rclcpp::Node
   private:
     void load_topics_from_file()
     {
-        std::string pkg_share_dir;
-        try
+        std::filesystem::path file_path;
+        if (!relative_path_)
         {
-            pkg_share_dir = ament_index_cpp::get_package_share_directory("topic_monitor");
+            RCLCPP_INFO(this->get_logger(), "Using absolute path for topics file: %s", topics_file_.c_str());
+            file_path = topics_file_;
         }
-        catch (const std::exception &e)
-        {
-            RCLCPP_ERROR(this->get_logger(), "Error getting package share directory for 'topic_monitor': %s", e.what());
-            rclcpp::shutdown();
-            return;
+        else{
+            RCLCPP_INFO(this->get_logger(), "Using relative path for topics file: %s", topics_file_.c_str());
+            std::string pkg_share_dir;
+            try
+            {
+                pkg_share_dir = ament_index_cpp::get_package_share_directory("topic_monitor");
+            }
+            catch (const std::exception &e)
+            {
+                RCLCPP_ERROR(this->get_logger(), "Error getting package share directory for 'topic_monitor': %s", e.what());
+                rclcpp::shutdown();
+                return;
+            }
+            catch (...)
+            {
+                RCLCPP_ERROR(this->get_logger(), "An unknown error occurred while getting package share directory for 'topic_monitor'.");
+                rclcpp::shutdown();
+                return;
+            }
+    
+            file_path = pkg_share_dir;
+            file_path /= topics_file_;
         }
-        catch (...)
-        {
-            RCLCPP_ERROR(this->get_logger(), "An unknown error occurred while getting package share directory for 'topic_monitor'.");
-            rclcpp::shutdown();
-            return;
-        }
-
-        std::filesystem::path file_path = pkg_share_dir;
-        file_path /= topics_file_;
 
         RCLCPP_INFO(this->get_logger(), "Attempting to load topics from: %s", file_path.string().c_str());
 
@@ -364,7 +375,10 @@ class TopicMonitor : public rclcpp::Node
         rclcpp::shutdown();
     }
 
+    // Variables from parameters
     std::string topics_file_;
+    bool relative_path_;
+
     std::vector<std::shared_ptr<TopicInfo>> topic_infos_;
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Time monitoring_start_time_;

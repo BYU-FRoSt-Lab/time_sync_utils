@@ -1,0 +1,4 @@
+topic_monitor:
+  ros__parameters:
+    topic_path: "config/topics.yaml"
+    relative_path: true
