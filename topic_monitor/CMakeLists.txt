@@ -41,9 +41,9 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# Install the topics.txt file to the package's share directory
-install(FILES config/topics.yaml
-  DESTINATION share/config/${PROJECT_NAME}
+# Install the config folder to the package's share directory
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}/config
 )
 
 ament_export_dependencies(
