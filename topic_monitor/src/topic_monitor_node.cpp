@@ -69,6 +69,10 @@ class TopicMonitor : public rclcpp::Node
         topics_file_ = this->get_parameter("topics_file").as_string();
         this->declare_parameter<bool>("relative_path", true);
         relative_path_ = this->get_parameter("relative_path").as_bool();
+        this->declare_parameter<double>("sync_threshold_warn_seconds", 0.1);
+        SYNC_THRESHOLD_WARN_SECONDS = this->get_parameter("sync_threshold_warn_seconds").as_double();
+        this->declare_parameter<double>("sync_threshold_error_seconds", 1.0);
+        SYNC_THRESHOLD_ERROR_SECONDS = this->get_parameter("sync_threshold_error_seconds").as_double();
 
         load_topics_from_file();
 
@@ -280,9 +284,9 @@ class TopicMonitor : public rclcpp::Node
         RCLCPP_INFO(this->get_logger(), "---    Topic Monitoring Results    ---");
         RCLCPP_INFO(this->get_logger(), "--------------------------------------\n");
 
-        // A threshold for "synchronization" difference. This can be tuned. // Parameterize this
-        const double SYNC_THRESHOLD_WARN_SECONDS = 0.1;  // e.g., 100 milliseconds
-        const double SYNC_THRESHOLD_ERROR_SECONDS = 1.0; // e.g., 100 milliseconds
+        // A threshold for "synchronization" difference. This can be tuned. // TODO Parameterize this
+        // const double SYNC_THRESHOLD_WARN_SECONDS = 0.1;  // e.g., 100 milliseconds
+        // const double SYNC_THRESHOLD_ERROR_SECONDS = 1.0; // e.g., 100 milliseconds
         int num_warn = 0;
         int num_error = 0;
         for (auto const &info_ptr : topic_infos_) // Iterate over shared_ptrs
@@ -378,6 +382,8 @@ class TopicMonitor : public rclcpp::Node
     // Variables from parameters
     std::string topics_file_;
     bool relative_path_;
+    const double SYNC_THRESHOLD_WARN_SECONDS;
+    const double SYNC_THRESHOLD_ERROR_SECONDS;
 
     std::vector<std::shared_ptr<TopicInfo>> topic_infos_;
     rclcpp::TimerBase::SharedPtr timer_;

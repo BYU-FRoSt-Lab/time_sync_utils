@@ -2,3 +2,5 @@ topic_monitor:
   ros__parameters:
     topic_path: "config/topics.yaml"
     relative_path: true
+    sync_threshold_warn_seconds: 0.1
+    sync_threshold_error_seconds: 1.0
