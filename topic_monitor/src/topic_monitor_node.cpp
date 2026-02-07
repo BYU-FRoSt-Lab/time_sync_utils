@@ -10,6 +10,8 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/magnetic_field.hpp>
+#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 
 // ADD THIS MISSING SERIALIZATION HEADER
 #include <rclcpp/serialization.hpp>
@@ -347,6 +349,22 @@ class TopicMonitor : public rclcpp::Node
             rclcpp::Serialization<sensor_msgs::msg::PointCloud2> serializer;
             serializer.deserialize_message(msg.get(), &point_msg);
             timestamp = point_msg.header.stamp;
+            return true;
+        }
+        else if (message_type == "sensor_msgs/msg/MagneticField")
+        {
+            sensor_msgs::msg::MagneticField point_msg;
+            rclcpp::Serialization<sensor_msgs::msg::MagneticField> serializer;
+            serializer.deserialize_message(msg.get(), &point_msg);
+            timestamp = point_msg.header.stamp;
+            return true;
+        }
+        else if (message_type == "geometry_msgs/msg/TwistWithCovarianceStamped")
+        {
+            geometry_msgs::msg::TwistWithCovarianceStamped twist_msg;
+            rclcpp::Serialization<geometry_msgs::msg::TwistWithCovarianceStamped> serializer;
+            serializer.deserialize_message(msg.get(), &twist_msg);
+            timestamp = twist_msg.header.stamp;
             return true;
         }
         // Add more messages as needed
