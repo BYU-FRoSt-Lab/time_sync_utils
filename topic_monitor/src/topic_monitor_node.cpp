@@ -228,7 +228,8 @@ class TopicMonitor : public rclcpp::Node
                             }
                         }
 
-                        RCLCPP_INFO(this->get_logger(), "Subscribing to topic: %s with type: %s (QoS: depth=%zu, reliability=%s, durability=%s)", 
+                        RCLCPP_INFO(this->get_logger(), 
+                                    "Subscribing to topic: %s with type: %s (QoS: depth=%zu, reliability=%s, durability=%s)", 
                                     topic_name.c_str(), message_type.c_str(),
                                     qos_config.history_depth, qos_config.reliability.c_str(), qos_config.durability.c_str());
                         subscribe_to_topic(topic_name, message_type, qos_config);

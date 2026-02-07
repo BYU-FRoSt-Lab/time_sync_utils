@@ -33,11 +33,11 @@ topics:
       reliability: reliable
       durability: volatile
 
-  # Example 5: Best effort + transient local
-  # Useful for static or slowly changing configuration data
+  # Example 5: Reliable with transient local durability
+  # Best for configuration data that late-joining subscribers need
   - name: /gps/status
     type: sensor_msgs/msg/NavSatFix
     qos:
       history_depth: 10
-      reliability: best_effort
+      reliability: reliable
       durability: transient_local
