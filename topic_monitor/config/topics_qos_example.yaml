@@ -1,0 +1,43 @@
+# Example topics configuration demonstrating QoS profile options
+# This file shows how to configure different QoS settings for each topic
+
+topics:
+  # Example 1: Default QoS (no qos section specified)
+  # Uses: history_depth=10, reliability=reliable, durability=volatile
+  - name: /default_topic
+    type: sensor_msgs/msg/NavSatFix
+
+  # Example 2: Best effort reliability for high-frequency sensor data
+  # Good for real-time data where occasional message loss is acceptable
+  - name: /lidar/points
+    type: sensor_msgs/msg/PointCloud2
+    qos:
+      history_depth: 5
+      reliability: best_effort
+      durability: volatile
+
+  # Example 3: Transient local durability for late-joining subscribers
+  # Late subscribers can receive previously published messages
+  - name: /map_data
+    type: sensor_msgs/msg/Image
+    qos:
+      history_depth: 1
+      reliability: reliable
+      durability: transient_local
+
+  # Example 4: Large history depth for bursty data
+  - name: /imu/data
+    type: sensor_msgs/msg/Imu
+    qos:
+      history_depth: 100
+      reliability: reliable
+      durability: volatile
+
+  # Example 5: Reliable with transient local durability
+  # Best for configuration data that late-joining subscribers need
+  - name: /gps/status
+    type: sensor_msgs/msg/NavSatFix
+    qos:
+      history_depth: 10
+      reliability: reliable
+      durability: transient_local
