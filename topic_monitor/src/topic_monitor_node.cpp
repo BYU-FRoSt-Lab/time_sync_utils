@@ -200,11 +200,31 @@ class TopicMonitor : public rclcpp::Node
                             }
                             if (qos_node["reliability"])
                             {
-                                qos_config.reliability = qos_node["reliability"].as<std::string>();
+                                std::string reliability = qos_node["reliability"].as<std::string>();
+                                if (reliability == "reliable" || reliability == "best_effort")
+                                {
+                                    qos_config.reliability = reliability;
+                                }
+                                else
+                                {
+                                    RCLCPP_WARN(this->get_logger(),
+                                               "Invalid reliability value '%s' for topic '%s'. Using default 'reliable'. Valid options: 'reliable', 'best_effort'",
+                                               reliability.c_str(), topic_name.c_str());
+                                }
                             }
                             if (qos_node["durability"])
                             {
-                                qos_config.durability = qos_node["durability"].as<std::string>();
+                                std::string durability = qos_node["durability"].as<std::string>();
+                                if (durability == "volatile" || durability == "transient_local")
+                                {
+                                    qos_config.durability = durability;
+                                }
+                                else
+                                {
+                                    RCLCPP_WARN(this->get_logger(),
+                                               "Invalid durability value '%s' for topic '%s'. Using default 'volatile'. Valid options: 'volatile', 'transient_local'",
+                                               durability.c_str(), topic_name.c_str());
+                                }
                             }
                         }
 
