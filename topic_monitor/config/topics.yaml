@@ -1,6 +1,10 @@
 # List the name of the topic with the corresponding topic type
 # Ex.   - name: /topic
 #       - type: topic/type
+#       - qos:  # Optional QoS settings
+#           history_depth: 10  # Default: 10
+#           reliability: reliable  # Options: reliable, best_effort (Default: reliable)
+#           durability: volatile   # Options: volatile, transient_local (Default: volatile)
 
 # Below is a list of all of the topic types accepted up to this point.
 #   - nav_msgs/msg/Odometry
@@ -39,3 +43,11 @@ topics:
   # Emlid RTK GPS
   - name: /emlid/NavSatFix
     type: sensor_msgs/msg/NavSatFix
+    
+  # # Example with custom QoS settings
+  # - name: /example_topic
+  #   type: sensor_msgs/msg/NavSatFix
+  #   qos:
+  #     history_depth: 5
+  #     reliability: best_effort
+  #     durability: transient_local

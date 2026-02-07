@@ -37,6 +37,16 @@
 
 using namespace std::chrono_literals;
 
+// Structure to hold QoS configuration
+struct QoSConfig
+{
+    size_t history_depth = 10;
+    std::string reliability = "reliable";  // "reliable" or "best_effort"
+    std::string durability = "volatile";   // "volatile" or "transient_local"
+    
+    QoSConfig() = default;
+};
+
 // Structure to hold topic information
 struct TopicInfo
 {
@@ -47,6 +57,7 @@ struct TopicInfo
     rclcpp::Time last_timestamp;
     bool received_message_since_start = false;
     std::shared_ptr<rclcpp::GenericSubscription> subscription;
+    QoSConfig qos_config;
 
     // Constructor to properly initialize all members and avoid warnings
     TopicInfo(std::string name, std::string type)
@@ -101,6 +112,34 @@ class TopicMonitor : public rclcpp::Node
     void start_monitoring() { executor_->add_node(shared_from_this()); }
 
   private:
+    // Helper function to create a QoS profile from configuration
+    rclcpp::QoS create_qos_profile(const QoSConfig &config)
+    {
+        rclcpp::QoS qos_profile(config.history_depth);
+        
+        // Set reliability
+        if (config.reliability == "best_effort")
+        {
+            qos_profile.reliability(rclcpp::ReliabilityPolicy::BestEffort);
+        }
+        else // Default to reliable
+        {
+            qos_profile.reliability(rclcpp::ReliabilityPolicy::Reliable);
+        }
+        
+        // Set durability
+        if (config.durability == "transient_local")
+        {
+            qos_profile.durability(rclcpp::DurabilityPolicy::TransientLocal);
+        }
+        else // Default to volatile
+        {
+            qos_profile.durability(rclcpp::DurabilityPolicy::Volatile);
+        }
+        
+        return qos_profile;
+    }
+
     void load_topics_from_file()
     {
         std::filesystem::path file_path;
@@ -149,9 +188,28 @@ class TopicMonitor : public rclcpp::Node
                     {
                         std::string topic_name = topic_node["name"].as<std::string>();
                         std::string message_type = topic_node["type"].as<std::string>();
+                        
+                        // Parse QoS settings if present
+                        QoSConfig qos_config;
+                        if (topic_node["qos"])
+                        {
+                            const YAML::Node &qos_node = topic_node["qos"];
+                            if (qos_node["history_depth"])
+                            {
+                                qos_config.history_depth = qos_node["history_depth"].as<size_t>();
+                            }
+                            if (qos_node["reliability"])
+                            {
+                                qos_config.reliability = qos_node["reliability"].as<std::string>();
+                            }
+                            if (qos_node["durability"])
+                            {
+                                qos_config.durability = qos_node["durability"].as<std::string>();
+                            }
+                        }
 
                         RCLCPP_INFO(this->get_logger(), "Subscribing to topic: %s with type: %s", topic_name.c_str(), message_type.c_str());
-                        subscribe_to_topic(topic_name, message_type);
+                        subscribe_to_topic(topic_name, message_type, qos_config);
                     }
                     else
                     {
@@ -189,12 +247,13 @@ class TopicMonitor : public rclcpp::Node
     }
 
 
-    void subscribe_to_topic(const std::string &topic_name, const std::string &message_type)
+    void subscribe_to_topic(const std::string &topic_name, const std::string &message_type, const QoSConfig &qos_config)
     {
-        rclcpp::QoS qos_profile(10); // Standard QoS profile
+        rclcpp::QoS qos_profile = create_qos_profile(qos_config);
 
         // Create a shared_ptr to TopicInfo on the heap
         std::shared_ptr<TopicInfo> current_info = std::make_shared<TopicInfo>(topic_name, message_type);
+        current_info->qos_config = qos_config;
 
         // Add the shared_ptr to the vector
         topic_infos_.push_back(current_info);

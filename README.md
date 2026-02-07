@@ -18,6 +18,32 @@ The `topic_monitor` package is a diagnostic tool used to verify that various ROS
 * **`sync_threshold_warn_seconds`** (double, default: `0.1`): The time difference (in seconds) between a topic's timestamp and the reference topic that triggers a warning.
 * **`sync_threshold_error_seconds`** (double, default: `1.0`): The time difference that triggers an error.
 
+### QoS Configuration
+
+Each topic in the `topics.yaml` file can optionally specify custom QoS (Quality of Service) settings. If not specified, default values are used.
+
+**Available QoS Options:**
+
+* **`history_depth`** (integer, default: `10`): The depth of the message history queue.
+* **`reliability`** (string, default: `"reliable"`): The reliability policy. Options:
+  * `"reliable"`: Ensures message delivery (may retry)
+  * `"best_effort"`: Does not guarantee message delivery
+* **`durability`** (string, default: `"volatile"`): The durability policy. Options:
+  * `"volatile"`: Only subscribers that are alive at publication time receive messages
+  * `"transient_local"`: Late-joining subscribers may receive previously published messages
+
+**Example:**
+
+```yaml
+topics:
+  - name: /example_topic
+    type: sensor_msgs/msg/NavSatFix
+    qos:
+      history_depth: 5
+      reliability: best_effort
+      durability: transient_local
+```
+
 ---
 
 ## 2. nmea_gpsd
